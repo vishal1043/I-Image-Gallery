@@ -1,0 +1,104 @@
+{% extends 'base.html' %}    
+{% block 'main'%}  
+<div class="tm-main-content tm-gallery-container">                   
+
+<h1 class="alert-success">Face Cutter</h1>
+
+<button onclick="start()" class="btn btn-success1">Cut Faces</button> &nbsp;&nbsp; <b class="text-danger" id="msgbox"></b>
+<hr>
+
+<div id="facediv">
+
+</div>
+<hr/>
+<button class="btn btn-success" onclick="save()">Save</button>
+
+</div>
+
+<script>
+    deleteImages = [];
+    faceRecords = {}
+
+    function save()
+    {
+        
+        $.ajax({
+            type : "POST",
+            url : "/rawfiles/savecutting",
+            contentType: "application/json",
+            dataType: 'json',
+            data : JSON.stringify({original:faceRecords,deleteImages}),
+            success : function(result)
+            {
+                console.log(result);
+                window.location = "/uploads"
+            }
+        })
+    }
+
+    function deleteImg(e,sid,fname)
+    {
+        e.target.parentElement.remove()
+        deleteImages.push({sid,fname})
+    }
+    function start()
+    {
+        deleteImages=[];
+        faceRecords = {};
+        const facediv = document.getElementById('facediv');
+        const msgbox = document.getElementById('msgbox');
+        msgbox.innerText = "Processing ...."
+        $.ajax({
+            type : "POST",
+            url : "/rawfiles/startcutting",
+            success : function(result)
+            {
+                msgbox.innerText = ""
+                const records = JSON.parse(result);
+                console.log(records)
+                faceRecords = records;
+                const keys = Object.keys(records);
+                for(let i=0; i<keys.length ; i++)
+                {    
+                    const key = keys[i];
+
+                    const actual = document.createElement('img');
+                    actual.src = "/static/"+records[key].real;
+                    actual.setAttribute('class','faceimg rounded');
+                    actual.setAttribute('style','box-shadow:1px 1px red')
+                    facediv.appendChild(actual)                   
+                  
+                    const rowdiv = document.createElement('div');
+                    rowdiv.setAttribute('class','row mt-3');
+
+                    for(fname of records[key].faces)
+                    {
+                        const dv = document.createElement('div');
+                        dv.setAttribute('class','col-xl-2 col-lg-2');
+
+                        const img = document.createElement('img');
+                        img.src = "/static/"+fname;
+                        img.setAttribute('class','faceimg');
+                        dv.appendChild(img)
+
+                        dv.appendChild(document.createElement('br'))
+
+                        const btn = document.createElement('button');
+                        btn.innerText = 'Delete';
+                        btn.setAttribute('class','btn-sm btn-danger');
+                        const fn = fname;
+                        btn.onclick = (e)=>deleteImg(e,records[key].id,fn);
+
+                        dv.appendChild(btn)
+                        rowdiv.appendChild(dv)
+                    }
+                    facediv.appendChild(rowdiv);
+                    facediv.appendChild(document.createElement('hr'))
+                }
+                
+            }
+        })
+    }
+</script>
+
+{% endblock 'main' %}
